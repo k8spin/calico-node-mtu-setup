@@ -1,0 +1,86 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    k8s-app: calico-node-mtu-setup
+  name: calico-node-mtu-setup
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      k8s-app: calico-node-mtu-setup
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        k8s-app: calico-node-mtu-setup
+    spec:
+      serviceAccount: calico-node-mtu-setup
+      serviceAccountName: calico-node-mtu-setup
+      priorityClassName: system-node-critical
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+        projectcalico.org/ds-ready: "true"
+      initContainers:
+        - name: copy-script
+          image: registry.gitlab.com/k8spin-open/container-images/kubectl:1.15.0
+          imagePullPolicy: Always
+          command: ["/bin/bash", "-c"]
+          args: ["cp /tmp/scripts/mtu.sh /etc/scripts/mtu.sh && chmod +x /etc/scripts/mtu.sh"]
+          volumeMounts:
+            - mountPath: /etc/scripts
+              name: shared-volume
+            - mountPath: /tmp/scripts
+              name: calico-node-mtu-setup
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+      containers:
+        - name: mtu-setup
+          image: registry.gitlab.com/k8spin-open/container-images/kubectl:1.15.0
+          imagePullPolicy: Always
+          command: ["/bin/bash", "-c"]
+          args: ["/etc/scripts/mtu.sh /host/etc/cni/net.d"]
+          env:
+            - name: CNI_CONF_NAME
+              value: 10-calico.conflist
+            - name: MTU_SIZE
+              value: "1460"
+            - name: RETRY_PERIOD
+              value: "10"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          volumeMounts:
+            - mountPath: /etc/scripts
+              name: shared-volume
+            - mountPath: /host/etc/cni/net.d
+              name: cni-net-dir
+      restartPolicy: Always
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+        - key: CriticalAddonsOnly
+          operator: Exists
+      volumes:
+        - name: shared-volume
+          emptyDir: {}
+        - hostPath:
+            path: /etc/cni/net.d
+            type: ""
+          name: cni-net-dir
+        - name: calico-node-mtu-setup
+          configMap:
+            name: calico-node-mtu-setup

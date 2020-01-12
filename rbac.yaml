@@ -1,0 +1,46 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    k8s-app: calico-node-mtu-setup
+  name: calico-node-mtu-setup
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  labels:
+    k8s-app: calico-node-mtu-setup
+  name: calico-node-mtu-setup
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - "*"
+- apiGroups:
+  - policy
+  resourceNames:
+  - gce.privileged
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    k8s-app: calico-node-mtu-setup
+  name: calico-node-mtu-setup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: calico-node-mtu-setup
+subjects:
+- kind: ServiceAccount
+  name: calico-node-mtu-setup
+  namespace: kube-system
