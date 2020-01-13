@@ -175,5 +175,5 @@ root@echo-gvisor-8695f776d5-8z4p8:/# curl -X POST "https://api.telegram.org/bot9
 {"ok":false,"error_code":401,"description":"Unauthorized"}
 ```
 
-After the `calico-node-mtu-setup` daemonset fix the last curl command failed
+before the `calico-node-mtu-setup` daemonset fix, last curl command fails
 with `curl: (56) OpenSSL SSL_read: SSL_ERROR_SYSCALL, errno 104`
